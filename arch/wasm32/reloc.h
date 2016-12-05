@@ -1,4 +1,4 @@
-#define LDSO_ARCH "x86_64"
+#define LDSO_ARCH "wasm32"
 
 #define REL_SYMBOLIC    R_X86_64_64
 #define REL_OFFSET32    R_X86_64_PC32
@@ -11,10 +11,11 @@
 #define REL_TPOFF       R_X86_64_TPOFF64
 #define REL_TLSDESC     R_X86_64_TLSDESC
 
-#define CRTJMP(pc,sp) __asm__ __volatile__( \
-	"mov %1,%%rsp ; jmp *%0" : : "r"(pc), "r"(sp) : "memory" )
+#define CRTJMP(pc,sp) do {                                              \
+                (void)(pc);                                             \
+               (void)(sp);                                              \
+        } while(0)
 
-#define GETFUNCSYM(fp, sym, got) __asm__ ( \
-	".hidden " #sym "\n" \
-	"	lea " #sym "(%%rip),%0\n" \
-	: "=r"(*fp) : : "memory" )
+#define GETFUNCSYM(fp, sym, got) do {           \
+                *(fp) = 0;                      \
+        } while(0)

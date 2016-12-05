@@ -1,5 +1,5 @@
 #define _Addr long
-#define _Int64 long
+#define _Int64 long long
 #define _Reg long
 
 TYPEDEF __builtin_va_list va_list;
@@ -9,13 +9,8 @@ TYPEDEF __builtin_va_list __isoc_va_list;
 TYPEDEF int wchar_t;
 #endif
 
-#if defined(__FLT_EVAL_METHOD__) && __FLT_EVAL_METHOD__ == 2
-TYPEDEF long double float_t;
-TYPEDEF long double double_t;
-#else
 TYPEDEF float float_t;
 TYPEDEF double double_t;
-#endif
 
 TYPEDEF struct { long long __ll; long double __ld; } max_align_t;
 

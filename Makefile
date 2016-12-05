@@ -165,6 +165,7 @@ obj/%.lo: $(srcdir)/%.c $(GENH) $(IMPH)
 
 lib/libc.so: $(LOBJS) $(LDSO_OBJS)
 	$(CC) $(CFLAGS_ALL) $(LDFLAGS_ALL) -nostdlib -shared \
+	-Wl,-shared \
 	-Wl,-e,_dlstart -o $@ $(LOBJS) $(LDSO_OBJS) $(LIBCC)
 
 lib/libc.a: $(AOBJS)
