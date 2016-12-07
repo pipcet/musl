@@ -558,34 +558,8 @@ else
 pic_default=no
 fi
 
-# Reduce space lost to padding for alignment purposes by sorting data
-# objects according to their alignment reqirements. This approximates
-# optimal packing.
-tryldflag LDFLAGS_AUTO -Wl,--sort-section,alignment
-tryldflag LDFLAGS_AUTO -Wl,--sort-common
-
-# When linking shared library, drop dummy weak definitions that were
-# replaced by strong definitions from other translation units.
-tryldflag LDFLAGS_AUTO -Wl,--gc-sections
-
 # Some patched GCC builds have these defaults messed up...
 tryldflag LDFLAGS_AUTO -Wl,--hash-style=both
-
-# Prevent linking if there are undefined symbols; if any exist,
-# libc.so will crash at runtime during relocation processing.
-# The common way this can happen is failure to link the compiler
-# runtime library; implementation error is also a possibility.
-tryldflag LDFLAGS_AUTO -Wl,--no-undefined
-
-# Avoid exporting symbols from compiler runtime libraries. They
-# should be hidden anyway, but some toolchains including old gcc
-# versions built without shared library support and pcc are broken.
-tryldflag LDFLAGS_AUTO -Wl,--exclude-libs=ALL
-
-# Linking with -Bsymbolic-functions is no longer mandatory for
-# the dynamic linker to work, but enable it if it works as
-# a linking optimization.
-tryldflag LDFLAGS_AUTO -Wl,-Bsymbolic-functions
 
 # Find compiler runtime library
 test -z "$LIBCC" && tryldflag LIBCC -lgcc && tryldflag LIBCC -lgcc_eh
