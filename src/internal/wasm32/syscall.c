@@ -2,7 +2,11 @@
 
 asm(".include \"wasm32-import-macros.s\"");
 
+#ifdef __PIC__
+asm(".import3_pic thinthin,syscall,__thinthin_syscall");
+#else
 asm(".import3 thinthin,syscall,__thinthin_syscall");
+#endif
 
 extern long __thinthin_syscall(long n, ...) __attribute__((stackcall));
 
