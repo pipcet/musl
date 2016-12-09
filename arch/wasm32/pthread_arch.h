@@ -1,7 +1,7 @@
 static inline struct pthread *__pthread_self()
 {
-	struct pthread *self = NULL;
-	return self;
+        static struct pthread self;
+	return &self;
 }
 
 #define TP_ADJ(p) (p)
