@@ -1257,7 +1257,7 @@ void __init_tls(size_t *auxv)
 }
 
 __attribute__((__visibility__("hidden")))
-void *__tls_get_new(size_t *v)
+void *__tls_get_new(tls_mod_off_t *v)
 {
 	pthread_t self = __pthread_self();
 
@@ -1686,6 +1686,7 @@ void *dlopen(const char *file, int mode)
 		}
 		if (!orig_tls_tail) libc.tls_head = 0;
 		tls_tail = orig_tls_tail;
+		if (tls_tail) tls_tail->next = 0;
 		tls_cnt = orig_tls_cnt;
 		tls_offset = orig_tls_offset;
 		tls_align = orig_tls_align;
@@ -1768,7 +1769,7 @@ static void *addr2dso(size_t a)
 	return 0;
 }
 
-void *__tls_get_addr(size_t *);
+void *__tls_get_addr(tls_mod_off_t *);
 
 static void *do_dlsym(struct dso *p, const char *s, void *ra)
 {
@@ -1786,7 +1787,7 @@ static void *do_dlsym(struct dso *p, const char *s, void *ra)
 		struct symdef def = find_sym(p, s, 0);
 		if (!def.sym) goto failed;
 		if ((def.sym->st_info&0xf) == STT_TLS)
-			return __tls_get_addr((size_t []){def.dso->tls_id, def.sym->st_value});
+			return __tls_get_addr((tls_mod_off_t []){def.dso->tls_id, def.sym->st_value});
 		if (DL_FDPIC && (def.sym->st_info&0xf) == STT_FUNC)
 			return def.dso->funcdescs + (def.sym - def.dso->syms);
 		return laddr(def.dso, def.sym->st_value);
@@ -1801,7 +1802,7 @@ static void *do_dlsym(struct dso *p, const char *s, void *ra)
 		sym = sysv_lookup(s, h, p);
 	}
 	if (sym && (sym->st_info&0xf) == STT_TLS)
-		return __tls_get_addr((size_t []){p->tls_id, sym->st_value});
+		return __tls_get_addr((tls_mod_off_t []){p->tls_id, sym->st_value});
 	if (DL_FDPIC && sym && sym->st_shndx && (sym->st_info&0xf) == STT_FUNC)
 		return p->funcdescs + (sym - p->syms);
 	if (sym && sym->st_value && (1<<(sym->st_info&0xf) & OK_TYPES))
@@ -1815,7 +1816,7 @@ static void *do_dlsym(struct dso *p, const char *s, void *ra)
 			sym = sysv_lookup(s, h, p->deps[i]);
 		}
 		if (sym && (sym->st_info&0xf) == STT_TLS)
-			return __tls_get_addr((size_t []){p->deps[i]->tls_id, sym->st_value});
+			return __tls_get_addr((tls_mod_off_t []){p->deps[i]->tls_id, sym->st_value});
 		if (DL_FDPIC && sym && sym->st_shndx && (sym->st_info&0xf) == STT_FUNC)
 			return p->deps[i]->funcdescs + (sym - p->deps[i]->syms);
 		if (sym && sym->st_value && (1<<(sym->st_info&0xf) & OK_TYPES))

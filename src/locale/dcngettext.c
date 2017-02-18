@@ -40,8 +40,8 @@ char *bindtextdomain(const char *domainname, const char *dirname)
 	if (!domainname) return 0;
 	if (!dirname) return gettextdir(domainname, &(size_t){0});
 
-	size_t domlen = strlen(domainname);
-	size_t dirlen = strlen(dirname);
+	size_t domlen = strnlen(domainname, NAME_MAX+1);
+	size_t dirlen = strnlen(dirname, PATH_MAX);
 	if (domlen > NAME_MAX || dirlen >= PATH_MAX) {
 		errno = EINVAL;
 		return 0;
@@ -57,7 +57,7 @@ char *bindtextdomain(const char *domainname, const char *dirname)
 	}
 
 	if (!p) {
-		p = malloc(sizeof *p + domlen + dirlen + 2);
+		p = calloc(sizeof *p + domlen + dirlen + 2, 1);
 		if (!p) {
 			UNLOCK(lock);
 			return 0;
@@ -74,7 +74,7 @@ char *bindtextdomain(const char *domainname, const char *dirname)
 	a_store(&p->active, 1);
 
 	for (q=bindings; q; q=q->next) {
-		if (!strcmp(p->domainname, domainname) && q != p)
+		if (!strcmp(q->domainname, domainname) && q != p)
 			a_store(&q->active, 0);
 	}
 
@@ -127,7 +127,7 @@ char *dcngettext(const char *domainname, const char *msgid1, const char *msgid2,
 
 	if (!domainname) domainname = __gettextdomain();
 
-	domlen = strlen(domainname);
+	domlen = strnlen(domainname, NAME_MAX+1);
 	if (domlen > NAME_MAX) goto notrans;
 
 	dirname = gettextdir(domainname, &dirlen);
@@ -171,7 +171,7 @@ notrans:
 		size_t map_size;
 		const void *map = __map_file(name, &map_size);
 		if (!map) goto notrans;
-		p = malloc(sizeof *p + namelen + 1);
+		p = calloc(sizeof *p + namelen + 1, 1);
 		if (!p) {
 			__munmap((void *)map, map_size);
 			goto notrans;
