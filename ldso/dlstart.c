@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include "dynlink.h"
+#include "libc.h"
 
 #ifndef START
 #define START "_dlstart"

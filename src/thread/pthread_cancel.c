@@ -2,10 +2,8 @@
 #include <string.h>
 #include "pthread_impl.h"
 #include "syscall.h"
-#include "libc.h"
 
-__attribute__((__visibility__("hidden")))
-long __cancel(), __syscall_cp_asm(), __syscall_cp_c();
+hidden long __cancel(), __syscall_cp_asm(), __syscall_cp_c();
 
 long __cancel()
 {
@@ -62,6 +60,10 @@ int pthread_cancel(pthread_t t)
 		init = 1;
 	}
 	a_store(&t->cancel, 1);
-	if (t == pthread_self() && !t->cancelasync) return 0;
+	if (t == pthread_self()) {
+		if (t->canceldisable == PTHREAD_CANCEL_ENABLE && t->cancelasync)
+			pthread_exit(PTHREAD_CANCELED);
+		return 0;
+	}
 	return pthread_kill(t, SIGCANCEL);
 }
