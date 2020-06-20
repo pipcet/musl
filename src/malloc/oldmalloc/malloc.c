@@ -20,8 +20,6 @@ static struct {
 	volatile int split_merge_lock[2];
 } mal;
 
-int __malloc_replaced;
-
 /* Synchronization tools */
 
 static inline void lock(volatile int *lk)
@@ -341,40 +339,9 @@ void *malloc(size_t n)
 	return CHUNK_TO_MEM(c);
 }
 
-static size_t mal0_clear(char *p, size_t pagesz, size_t n)
+int __malloc_allzerop(void *p)
 {
-#ifdef __GNUC__
-	typedef uint64_t __attribute__((__may_alias__)) T;
-#else
-	typedef unsigned char T;
-#endif
-	char *pp = p + n;
-	size_t i = (uintptr_t)pp & (pagesz - 1);
-	for (;;) {
-		pp = memset(pp - i, 0, i);
-		if (pp - p < pagesz) return pp - p;
-		for (i = pagesz; i; i -= 2*sizeof(T), pp -= 2*sizeof(T))
-		        if (((T *)pp)[-1] | ((T *)pp)[-2])
-				break;
-	}
-}
-
-void *calloc(size_t m, size_t n)
-{
-	if (n && m > (size_t)-1/n) {
-		errno = ENOMEM;
-		return 0;
-	}
-	n *= m;
-	void *p = malloc(n);
-	if (!p) return p;
-	if (!__malloc_replaced) {
-		if (IS_MMAPPED(MEM_TO_CHUNK(p)))
-			return p;
-		if (n >= PAGE_SIZE)
-			n = mal0_clear(p, PAGE_SIZE, n);
-	}
-	return memset(p, 0, n);
+	return IS_MMAPPED(MEM_TO_CHUNK(p));
 }
 
 void *realloc(void *p, size_t n)
@@ -418,6 +385,18 @@ void *realloc(void *p, size_t n)
 	/* Crash on corrupted footer (likely from buffer overflow) */
 	if (next->psize != self->csize) a_crash();
 
+	if (n < n0) {
+		int i = bin_index_up(n);
+		int j = bin_index(n0);
+		if (i<j && (mal.binmap & (1ULL << i)))
+			goto copy_realloc;
+		struct chunk *split = (void *)((char *)self + n);
+		self->csize = split->psize = n | C_INUSE;
+		split->csize = next->psize = n0-n | C_INUSE;
+		__bin_chunk(split);
+		return CHUNK_TO_MEM(self);
+	}
+
 	lock(mal.split_merge_lock);
 
 	size_t nsize = next->csize & C_INUSE ? 0 : CHUNK_SIZE(next);
@@ -442,7 +421,7 @@ copy_realloc:
 	new = malloc(n-OVERHEAD);
 	if (!new) return 0;
 copy_free_ret:
-	memcpy(new, p, n0-OVERHEAD);
+	memcpy(new, p, (n<n0 ? n : n0) - OVERHEAD);
 	free(CHUNK_TO_MEM(self));
 	return new;
 }
